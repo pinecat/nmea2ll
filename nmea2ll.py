@@ -30,7 +30,7 @@ def parse_gll(sentence):
     long = long.replace('.','')         # remove decimal point from incorrect location in long
     lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
     long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
-    location = "{ \"GLL\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" }""{ GLL: { lat: " + lat + ", long: " + long + " } }"  # lat and long put into structured JSON
+    location = "{ \"GLL\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" } }"  # lat and long put into structured JSON
     return location                     # return the location
 
 # parse_gga
