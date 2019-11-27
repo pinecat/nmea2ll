@@ -38,16 +38,58 @@ def get_latlong_from_json(end_coords):
         lat = end_coords['GLL']['lat']
         long = end_coords['GLL']['long']
     elif end_coords.get('GGA'):
-        lat = end_coords['GLL']['lat']
-        long = end_coords['GLL']['long']
+        lat = end_coords['GGA']['lat']
+        long = end_coords['GGA']['long']
     elif end_coords.get('RMC'):
-        lat = end_coords['GLL']['lat']
-        long = end_coords['GLL']['long']
+        lat = end_coords['RMC']['lat']
+        long = end_coords['RMC']['long']
     else:
         lat = ""
         long = ""
     return lat, long
 
+# de_dup
+#   helper function for deduping lat long points from path_data
+def de_dup((lat, long), coords):
+    for (x, y) in coords:
+        if x == lat and y == long:
+            return coords
+    coords.append((lat, long))
+    return coords
+
+# calculate_bearing
+#   helper function to calculate the bearing needed to get to end_lat, end_long
+def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
+    # parse dir from lats and longs (N, S, E, W)
+    end_lat_dir = end_lat[-1:]
+    end_long_dir = end_long[-1:]
+    cur_lat_dir = cur_lat[-1:]
+    cur_long_dir = cur_long[-1:]
+
+    # convert lats and longs to floats
+    end_lat = float(end_lat[:-1])
+    end_long = float(end_long[:-1])
+    cur_lat = float(cur_lat[:-1])
+    cur_long = float(cur_long[:-1])
+
+    # adjust lats and longs based on dir
+    if end_lat_dir == 'S':
+        end_lat = end_lat * -1
+    elif end_long_dir == 'W':
+        end_long = end_long * -1
+    elif cur_lat_dir == 'S':
+        cur_lat = cur_lat * -1
+    elif cur_long_dir == 'W':
+        cur_long = cur_long * -1
+
+    # calculate bearing and convert to degrees
+    y = math.sin(end_long - cur_long) * math.cos(end_lat)
+    x = (math.cos(cur_lat) * math.sin(end_lat)) - (math.sin(cur_lat) * math.cos(end_lat) * math.cos(end_long - cur_long))
+    bearing = math.degrees(math.atan2(y, x))
+    if (bearing < 0):
+        bearing = bearing + 360
+    return bearing
+    
 # open pathdata file for route #
 # for now, this is just the route for brinser
 path_data = open('pathdata-brinser.json', 'r')
@@ -61,10 +103,19 @@ sock_location.connect((HOST, PORT_LOCATION))
 sock_bearing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock_bearing.connect((HOST, PORT_BEARING))
 
+# read in all points from path_data and de_dup them #
+coords = []
+for json_element in path_data:
+    end_coords = json.loads(json_element)
+    end_lat, end_long = get_latlong_from_json(end_coords)
+    coords = de_dup((end_lat, end_long), coords)
+
+bearing = calculate_bearing('40N', '76W', '40N', '76W')
+print(bearing)
+print(end_lat, end_long)
+
 # main prog loop #
-#   start reading in the coordinates from the path_data file.
-#   run through each line, and parse out the next coordinate.
-#   then, determine what our current lat and long is.  use
+#   determine what our current lat and long is.  use
 #   our current lat and long and the lat and long from the
 #   path data to calculate the bearing needed to reach the
 #   next coordinate.  start moving the bot forward, and then
@@ -73,6 +124,4 @@ sock_bearing.connect((HOST, PORT_BEARING))
 #   check to see if we've reached that point: if we have,
 #   then grab the next coordinate from the path_data file,
 #   otherwise keep moving and adjusting bearing as needed.
-for json_element in path_data:
-    end_coords = json.loads(json_element)
-    end_lat, end_long = get_latlong_from_json(end_coords)
+

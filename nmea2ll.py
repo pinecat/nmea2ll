@@ -38,10 +38,11 @@ def parse_gll(sentence):
     data = sentence.split(',')          # split data into a list
     lat = data[1] + data[2]             # get lat data at correct position in list
     long = data[3] + data[4]            # get long data at correct position in list
-    lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.', '')         # remove decimal point from incorrect location in long
-    lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
-    long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
+    #lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
+    #long = long.replace('.', '')        # remove decimal point from incorrect location in long
+    #lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
+    #long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
+    
     location = "{ \"GLL\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" } }"  # lat and long put into structured JSON
     return location                     # return the location
 
@@ -51,10 +52,10 @@ def parse_gga(sentence):
     data = sentence.split(',')          # split data into a list
     lat = data[2] + data[3]             # get lat data at correct position in list
     long = data[4] + data[5]            # get long data at correct position in list
-    lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.', '')         # remove decimal point from incorrect location in long
-    lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
-    long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
+    #lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
+    #long = long.replace('.', '')        # remove decimal point from incorrect location in long
+    #lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
+    #long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
     location = "{ \"GGA\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" }"  # lat and long put into structured JSON
     return location                     # return the location
 
@@ -64,10 +65,10 @@ def parse_rmc(sentence):
     data = sentence.split(',')          # split data into a list
     lat = data[3] + data[4]             # get lat data at correct position in list
     long = data[5] + data[6]            # get long data at correct position in list
-    lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.', '')         # remove decimal point from incorrect location in long
-    lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
-    long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
+    #lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
+    #long = long.replace('.', '')        # remove decimal point from incorrect location in long
+    #lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
+    #long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
     location = "{ \"RMC\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" }"  # lat and long put into structured JSON
     return location                     # return the location
 
