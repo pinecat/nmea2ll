@@ -60,27 +60,11 @@ def de_dup((lat, long), coords):
 # calculate_bearing
 #   helper function to calculate the bearing needed to get to end_lat, end_long
 def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
-    # parse dir from lats and longs (N, S, E, W)
-    end_lat_dir = end_lat[-1:]
-    end_long_dir = end_long[-1:]
-    cur_lat_dir = cur_lat[-1:]
-    cur_long_dir = cur_long[-1:]
-
     # convert lats and longs to floats
     end_lat = float(end_lat[:-1])
     end_long = float(end_long[:-1])
     cur_lat = float(cur_lat[:-1])
     cur_long = float(cur_long[:-1])
-
-    # adjust lats and longs based on dir
-    if end_lat_dir == 'S':
-        end_lat = end_lat * -1
-    elif end_long_dir == 'W':
-        end_long = end_long * -1
-    elif cur_lat_dir == 'S':
-        cur_lat = cur_lat * -1
-    elif cur_long_dir == 'W':
-        cur_long = cur_long * -1
 
     # calculate bearing and convert to degrees
     y = math.sin(end_long - cur_long) * math.cos(end_lat)
@@ -109,10 +93,6 @@ for json_element in path_data:
     end_coords = json.loads(json_element)
     end_lat, end_long = get_latlong_from_json(end_coords)
     coords = de_dup((end_lat, end_long), coords)
-
-bearing = calculate_bearing('40N', '76W', '40N', '76W')
-print(bearing)
-print(end_lat, end_long)
 
 # main prog loop #
 #   determine what our current lat and long is.  use
