@@ -9,6 +9,9 @@
 #   Author: Rory Dudley (pinecat)
 ######################################################################
 
+# imports
+import socket
+
 # define dictionary and helper function for valid sentence types
 #   (i.e. sentence types with lat and long data)
 def parse_nmea_sentences(nmea_sentence_type, sentence):
@@ -65,16 +68,29 @@ def parse_others(sentence):
     return ""
 
 # open the nmea data file for reading
-nmea_data = open("20191121-18-44-20.nmea", "r")
+#nmea_data = open("20191121-18-44-20.nmea", "r")
+
+HOST = '192.168.0.11'
+PORT = 12345
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST, PORT))
+while True:
+    data = s.recv(1024)
+    if data[0] == "$":
+        nmea_sentence_type = data[3:6]
+        loc = parse_nmea_sentences(nmea_sentence_type, data)
+        if not loc == "":
+            print(loc)
 
 # loop through each line in the nmea data file
 #   (each line will be 1 nmea sentence)
-for sentence in nmea_data:
-    if sentence[0] == "$":                                          # only check nmea statement if sentence begins with a '$'
-        nmea_sentence_type = sentence[3:6]                          # use substring to get the sentence type
-        loc = parse_nmea_sentences(nmea_sentence_type, sentence)    # will return location if sentence type is correct (i.e. GLL, GGA, or RMC)
-        if not loc == "":                                           # if the location is not empty...
-            print(loc)                                              # print the location
+#for sentence in nmea_data:
+#    if sentence[0] == "$":                                          # only check nmea statement if sentence begins with a '$'
+#        nmea_sentence_type = sentence[3:6]                          # use substring to get the sentence type
+#        loc = parse_nmea_sentences(nmea_sentence_type, sentence     # will return location if sentence type is correct (i.e. GLL, GGA, or RMC)
+#        if not loc == "":                                           # if the location is not empty...
+#            print(loc)                                              # print the location
 
 # close the nmea data file now that we are finished with it
-nmea_data.close()
+#nmea_data.close()
