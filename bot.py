@@ -7,7 +7,17 @@ from nmea2ll import parse_nmea_sentences
 path_data = open('pathdata.json', 'r')
 
 for data in path_data:
-    loc = json.loads(data)
-    print(loc)
+    ll = json.loads(data)
+    lat
+    long
+
+    if ll.get('GLL'):
+        print ll['GLL']
+
+    if ll.get('GGA'):
+        print ll['GGA']
+
+    if ll.get('RMC'):
+        print ll['RMC']
 
 path_data.close()
