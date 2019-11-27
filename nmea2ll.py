@@ -11,12 +11,24 @@
 
 # define dictionary and helper function for valid sentence types
 #   (i.e. sentence types with lat and long data)
-def parse_nmea_sentences(nmea_sentence_type, sentence):
+def parse_nmea_sentences(sentence):
+    '''
+    parse_nmea_sentences:
+        helper function with defines dictionary for valid sentence types
+    params:
+        string - sentence - the NMEA sentence from the GPS module
+    returns:
+        on_valid_sentence_type:
+            func - location - the latitude and longitude from the NMEA sentence
+        on_invalid_sentence_type:
+            func - - the empty string ("")
+    '''
     sentences = {
         "GLL": parse_gll, # "GLL: Geographic Position - Latitude/Longitude"
         "GGA": parse_gga, # "GGA: Global Positioning System Fix Data"
         "RMC": parse_rmc  # "RMC: Recommended Minimum Navigation Information"
     }
+    nmea_sentence_type = sentence[3:6]
     func = sentences.get(nmea_sentence_type, parse_others)
     return func(sentence)
 
@@ -27,7 +39,7 @@ def parse_gll(sentence):
     lat = data[1] + data[2]             # get lat data at correct position in list
     long = data[3] + data[4]            # get long data at correct position in list
     lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.','')         # remove decimal point from incorrect location in long
+    long = long.replace('.', '')         # remove decimal point from incorrect location in long
     lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
     long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
     location = "{ \"GLL\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" } }"  # lat and long put into structured JSON
@@ -40,7 +52,7 @@ def parse_gga(sentence):
     lat = data[2] + data[3]             # get lat data at correct position in list
     long = data[4] + data[5]            # get long data at correct position in list
     lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.','')         # remove decimal point from incorrect location in long
+    long = long.replace('.', '')         # remove decimal point from incorrect location in long
     lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
     long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
     location = "{ \"GGA\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" }"  # lat and long put into structured JSON
@@ -53,7 +65,7 @@ def parse_rmc(sentence):
     lat = data[3] + data[4]             # get lat data at correct position in list
     long = data[5] + data[6]            # get long data at correct position in list
     lat = lat.replace('.', '')          # remove decimal point from incorrect location in lat
-    long = long.replace('.','')         # remove decimal point from incorrect location in long
+    long = long.replace('.', '')         # remove decimal point from incorrect location in long
     lat = lat[:2] + '.' + lat[2:]       # add decimal point back to correct location in lat
     long = long[:3] + '.' + long[3:]    # add decimal point back to correct location in long
     location = "{ \"RMC\": { \"lat\": \"" + lat + "\", \"long\": \"" + long + "\" }"  # lat and long put into structured JSON

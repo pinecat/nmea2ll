@@ -1,76 +1,78 @@
-import RPi.GPIO as GPIO
-import time
-import json
-import math
-import socket
-from nmea2ll import parse_nmea_sentences
+######################################################################
+#   Name:   bot.py
+#   Desc:   Code for navigation and control of E-Bot 9:
+#               Deliver-E-Bot
+#           This program part of The Elizabethtown RMI
+#               (Robotics & Machine Intelligence) Club,
+#               and the CS434 Green Robotics class
+######################################################################
 
-HOST = '192.168.0.11'
-PORT_LL = 12345
-PORT_HEADING = 54321
+# imports #
+import math                                 # used for sin(), cos(), atan2(), degrees()
+import socket                               # used to open/connect to server sockets
+import json                                 # used to parse json
+import time                                 # used for sleep()
+import RPi.GPIO as GPIO                     # used to control GPIO pins on the RasPi
+from nmea2ll import parse_nmea_sentences    # used for parsing NMEA sentences
 
-# open pathdata file for route
-path_data = open('pathdata.json', 'r')
+# constants #
+HOST = '192.168.0.11'   # ip address of raspi with the GPS unit, which is serving the GPS data
+PORT_LOCATION = 12345   # port for the service serving raw NMEA sentences (used primarily to get lat and long)
+PORT_BEARING = 54321    # port for the service serving current bearing data of the GPS unit (i.e. compass direction)
 
-# open data sockets
-ll_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-ll_sock.connect((HOST, PORT_LL))
-heading_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-heading_sock.connect((HOST, PORT_HEADING))
-
-for data in path_data:
-    path_ll = json.loads(data)
+# get_latlong_from_json
+#   helper function for getting lat and long from json
+def get_latlong_from_json(end_coords):
+    '''
+    get_latlong_from_json:
+        parse out the lat and long from our json_element
+    params:
+        json - end_coords - the json element containing the lat/long data
+    returns:
+        string - lat - the latitude
+        string - long - the longitude
+    '''
     lat = 0
     long = 0
+    if end_coords.get('GLL'):
+        lat = end_coords['GLL']['lat']
+        long = end_coords['GLL']['long']
+    elif end_coords.get('GGA'):
+        lat = end_coords['GLL']['lat']
+        long = end_coords['GLL']['long']
+    elif end_coords.get('RMC'):
+        lat = end_coords['GLL']['lat']
+        long = end_coords['GLL']['long']
+    else:
+        lat = ""
+        long = ""
+    return lat, long
 
-    if path_ll.get('GLL'):
-        lat = path_ll['GLL']['lat']
-        long = path_ll['GLL']['long']
+# open pathdata file for route #
+# for now, this is just the route for brinser
+path_data = open('pathdata-brinser.json', 'r')
 
-    if path_ll.get('GGA'):
-        lat = path_ll['GGA']['lat']
-        long = path_ll['GGA']['long']
+# open data sockets #
+# socket for lat/long and/or NMEA data
+sock_location = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock_location.connect((HOST, PORT_LOCATION))
 
-    if path_ll.get('RMC'):
-        lat = path_ll['RMC']['lat']
-        long = path_ll['RMC']['long']
+# socket for heading/bearing data
+sock_bearing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock_bearing.connect((HOST, PORT_BEARING))
 
-    nmea_data = ll_sock.recv(1024)
-    nmea_sentence_type = data[3:6]
-#    while nmea_sentence_type != 'GLL' and nmea_sentence_type != 'GGA' and nmea_sentence_type != 'RMC':
-#        nmea_data = ll_sock.recv(1024)
-#        nmea_sentence_type = data[3:6]
-
-    loc_str = parse_nmea_sentences(nmea_sentence_type, nmea_data)
-    print(loc_str)
-    if loc_str != "":
-        loc = json.loads(loc_str)
-    cur_lat = 0;
-    cur_long = 0
-    if loc != "":
-        if loc.get('GLL'):
-            cur_lat = loc['GLL']['lat']
-            cur_long = loc['GLL']['long']
-
-        if loc.get('GGA'):
-            cur_lat = loc['GGA']['lat']
-            cur_long = loc['GGA']['long']
-
-        if loc.get('RMC'):
-            cur_lat = loc['RMC']['lat']
-            cur_long = loc['RMC']['long']
-
-    lat = float(lat[:-1])
-    long = float(long[:-1])
-    cur_lat = float(cur_lat[:-1])
-    cur_long = float(cur_long[:-1])
-    
-    y = math.sin(long - cur_long) * math.cos(lat)
-    x = (math.cos(cur_lat) * math.sin(lat)) - (math.sin(cur_lat) * math.cos(lat) * math.cos(long - cur_long))
-    bearing = math.degrees(math.atan2(y, x))
-    if (bearing < 0):
-        bearing = bearing + 360
-    print(bearing)
-    
-
-path_data.close()
+# main prog loop #
+#   start reading in the coordinates from the path_data file.
+#   run through each line, and parse out the next coordinate.
+#   then, determine what our current lat and long is.  use
+#   our current lat and long and the lat and long from the
+#   path data to calculate the bearing needed to reach the
+#   next coordinate.  start moving the bot forward, and then
+#   use the turning and GPS data from the sock_bearing
+#   socket to align ourselves with the calculated bearing.
+#   check to see if we've reached that point: if we have,
+#   then grab the next coordinate from the path_data file,
+#   otherwise keep moving and adjusting bearing as needed.
+for json_element in path_data:
+    end_coords = json.loads(json_element)
+    end_lat, end_long = get_latlong_from_json(end_coords)
