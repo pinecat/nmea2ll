@@ -61,10 +61,10 @@ def de_dup((lat, long), coords):
 #   helper function to calculate the bearing needed to get to end_lat, end_long
 def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
     # convert lats and longs to floats
-    end_lat = float(end_lat[:-1])
-    end_long = float(end_long[:-1])
-    cur_lat = float(cur_lat[:-1])
-    cur_long = float(cur_long[:-1])
+    end_lat = float(end_lat)
+    end_long = float(end_long)
+    cur_lat = float(cur_lat)
+    cur_long = float(cur_long)
 
     # calculate bearing and convert to degrees
     y = math.sin(end_long - cur_long) * math.cos(end_lat)
@@ -73,7 +73,7 @@ def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
     if (bearing < 0):
         bearing = bearing + 360
     return bearing
-    
+
 # open pathdata file for route #
 # for now, this is just the route for brinser
 path_data = open('pathdata-brinser.json', 'r')
@@ -104,4 +104,3 @@ for json_element in path_data:
 #   check to see if we've reached that point: if we have,
 #   then grab the next coordinate from the path_data file,
 #   otherwise keep moving and adjusting bearing as needed.
-
