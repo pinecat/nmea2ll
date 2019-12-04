@@ -12,6 +12,7 @@ import math                                 # used for sin(), cos(), atan2(), de
 import socket                               # used to open/connect to server sockets
 import json                                 # used to parse json
 import time                                 # used for sleep()
+import threading                            # used to create threads
 import RPi.GPIO as GPIO                     # used to control GPIO pins on the RasPi
 from nmea2ll import parse_nmea_sentences    # used for parsing NMEA sentences
 
@@ -65,7 +66,12 @@ def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
     end_long = float(end_long)
     cur_lat = float(cur_lat)
     cur_long = float(cur_long)
-
+    
+    #end_lat = math.radians(end_lat)
+    #end_long = math.radians(end_long)
+    #cur_lat = math.radians(cur_lat)
+    #cur_long = math.radians(cur_long)
+    
     # calculate bearing and convert to degrees
     y = math.sin(end_long - cur_long) * math.cos(end_lat)
     x = (math.cos(cur_lat) * math.sin(end_lat)) - (math.sin(cur_lat) * math.cos(end_lat) * math.cos(end_long - cur_long))
@@ -73,6 +79,31 @@ def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
     if (bearing < 0):
         bearing = bearing + 360
     return bearing
+
+# right
+#   turn right
+def right():
+    GPIO.output(22, GPIO.LOW)
+    GPIO.output(27, GPIO.HIGH)
+    GPIO.output(22, GPIO.HIGH)
+    time.sleep(0.25)
+    GPIO.output(27, GPIO.LOW)
+    GPIO.output(22, GPIO.LOW)
+
+# left
+#   turn left
+def left():
+    GPIO.output(27, GPIO.LOW)
+    GPIO.output(22, GPIO.HIGH)
+    time.sleep(0.25)
+    GPIO.output(22, GPIO.LOW)
+    GPIO.output(27, GPIO.LOW)
+
+# forward
+#   move forward
+def forward():
+    GPIO.output(21, GPIO.HIGH)
+    GPIO.output(26, GPIO.HIGH)
 
 # open pathdata file for route #
 # for now, this is just the route for brinser
@@ -86,6 +117,19 @@ sock_location.connect((HOST, PORT_LOCATION))
 # socket for heading/bearing data
 sock_bearing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock_bearing.connect((HOST, PORT_BEARING))
+
+# initialize io pins #
+GPIO.setmode(GPIO.BCM)      # set the pin mode
+
+# rear motors
+GPIO.setup(21, GPIO.OUT)    # rear motor 1
+GPIO.setup(26, GPIO.OUT)    # rear motor 2
+pwm1 = GPIO.PWM(21, 100)    # pwm for rear motor 1
+pwm2 = GPIO.PWM(26, 100)    # pwm for rear motor 2
+
+# turning
+GPIO.setup(22, GPIO.OUT)    # high to turn left, low to turn right
+GPIO.setup(27, GPIO.OUT)    # high to turn right, low to turn left
 
 # read in all points from path_data and de_dup them #
 coords = []
@@ -104,3 +148,88 @@ for json_element in path_data:
 #   check to see if we've reached that point: if we have,
 #   then grab the next coordinate from the path_data file,
 #   otherwise keep moving and adjusting bearing as needed.
+
+# start back motors
+motor_thread = threading.Thread(target = forward)
+motor_thread.start()
+print('test')
+
+i = 20
+while i < len(coords):
+    # get good gps data
+    current_location = sock_location.recv(1024)
+    while parse_nmea_sentences(current_location) == "":
+        current_location = sock_location.recv(1024)
+    current_location = parse_nmea_sentences(current_location)
+
+    # parse out our current lat and long
+    cur_coords = json.loads(current_location)
+    cur_lat, cur_long = get_latlong_from_json(cur_coords)
+    cur_lat = float(cur_lat)
+    cur_long = float(cur_long)
+
+    # calculate margins to check current lat and long against from coords
+    wanted_lat, wanted_long = coords[i]
+    wanted_lat = float(wanted_lat)
+    wanted_long = float(wanted_long)
+    lo_lat_margin = wanted_lat - 0.00003
+    hi_lat_margin = wanted_lat + 0.00003
+    lo_long_margin = wanted_long - 0.000003
+    hi_long_margin = wanted_long + 0.000003
+
+    # get our current bearing
+    cur_bearing = sock_bearing.recv(1024)
+    cur_bearing = cur_bearing.split('\n')[0]
+    cur_bearing = float(cur_bearing)
+    print(cur_bearing)
+    
+    # calculate bearing
+    wanted_bearing = calculate_bearing(wanted_lat, wanted_long, cur_lat, cur_long)
+    lo_wanted_bearing_margin = wanted_bearing - 1
+    hi_wanted_bearing_margin = wanted_bearing + 1
+    if lo_wanted_bearing_margin < 0:
+        lo_wanted_bearing_margin = lo_wanted_bearing_margin + 360
+    if hi_wanted_bearing_margin > 360:
+        hi_wanted_bearing_margin = hi_wanted_bearing_margin - 360
+    
+    # calculate absolute degree of change
+    #abs_bearing_chg_deg = cur_bearing - wanted_bearing
+    #if abs_bearing_chg_deg < 0:
+    #    abs_bearing_chg_deg = abs_bearing_chg_deg + 360
+
+    # calculate which way to turn, negative values indicate to turn left
+    turn_right = ((cur_bearing + 540) % 360) - ((wanted_bearing + 540) % 360)
+    if turn_right > 179 and turn_right < 181:
+        right()
+        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+        #   pass
+        left()
+    elif turn_right > 0:
+        right()
+        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+        #    pass
+        left()
+    elif turn_right < 0:
+        left()
+        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+        #    pass
+        right()
+    else:
+        pass
+
+    # check if we are at the wanted lat, long
+    if cur_lat > lo_lat_margin and cur_lat < hi_lat_margin:
+        if cur_long > lo_long_aring and cur_long < hi_long_margin:
+            i = i + 10 # increment i (spot in our coords array)
+
+GPIO.output(21, GPIO.LOW)
+GPIO.output(26, GPIO.LOW)
+
+# clean shutdown all our sockets and IO before close
+sock_location.close()
+sock_bearing.close()
+GPIO.output(21, GPIO.LOW)
+GPIO.output(26, GPIO.LOW)
+GPIO.output(22, GPIO.LOW)
+GPIO.output(27, GPIO.LOW)
+GPIO.cleanup()
