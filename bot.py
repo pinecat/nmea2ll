@@ -234,48 +234,33 @@ while i < len(coords):
     #    abs_bearing_chg_deg = abs_bearing_chg_deg + 360
 
     # calculate which way to turn, negative values indicate to turn left
-    turn_right = False
-    if cur_bearing == 0:
-        antipode = 180
-        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
-            pass    
-        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
-            turn_right = True
-            right()
-        else:
-            turn_right = False
-            left()
-    elif cur_bearing == 180:
-        antipode = 360
-        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
-            pass    
-        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
-            turn_right = True
-            right()
-        else:
-            turn_right = False
-            left()
-    elif cur_bearing < 180:
-        antipode = cur_bearing + 180
-        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
-            pass    
-        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
-            turn_right = True
-            right()
-        else:
-            turn_right = False
-            left()
-    else:
-        anitpode = cur_bearing - 180
-        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
-            pass    
-        elif wanted_bearing < cur_bearing and wanted_bearing > antipode:
-            turn_right = False
-            left()
-        else:
-            turn_right = True
-            right()
 
+    # actual
+    hx = math.sin(cur_bearing)
+    hy = math.cos(cur_bearing)
+
+    # antipode
+    ax = math.sin(cur_bearing + 180)
+    ay = math.cos(cur_bearing + 180)
+
+    # desired
+    dx = math.sin(wanted_bearing)
+    dy = math.cos(wanted_bearing)
+
+    # distance
+    d = ((dx - ax)(hy - ay)) - ((dy - ay)(hx - ax))
+
+    turn_right = False
+    if dx == ax and dy == ay:
+        turn_right = True
+        right()
+    elif d > 0:
+        turn_right = True
+        right()
+    elif d < 0:
+        turn_right = False
+        left()
+    
     # check if we are at the wanted lat, long
     if cur_lat > lo_lat_margin and cur_lat < hi_lat_margin:
         if cur_long > lo_long_aring and cur_long < hi_long_margin:
