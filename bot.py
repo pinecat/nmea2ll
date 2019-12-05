@@ -173,11 +173,11 @@ for json_element in path_data:
 #motor_thread.start()
 #pwm1.start(80)
 #pwm2.start(80)
-#GPIO.output(21, GPIO.HIGH)
+GPIO.output(21, GPIO.HIGH)
 
 
 cur_bearing = -1.0
-i = 40
+i = 20
 while i < len(coords):
     # get good gps data
     current_location = sock_location.recv(1024)
@@ -234,33 +234,47 @@ while i < len(coords):
     #    abs_bearing_chg_deg = abs_bearing_chg_deg + 360
 
     # calculate which way to turn, negative values indicate to turn left
-    turn_right = ((cur_bearing + 540) % 360) - ((wanted_bearing + 540) % 360)
-    if turn_right > 179 and turn_right < 181:
-        right()
-        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-            mb_cur_bearing = get_bearing()
-            mb_cur_bearing = float(mb_cur_bearing)
-            if mb_cur_bearing != -1:
-                cur_bearing = mb_cur_bearing
-        left()
-    elif turn_right > 0:
-        right()
-        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-            mb_cur_bearing = get_bearing()
-            mb_cur_bearing = float(mb_cur_bearing)
-            if mb_cur_bearing != -1:
-                cur_bearing = mb_cur_bearing
-        left()
-    elif turn_right < 0:
-        left()
-        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-            mb_cur_bearing = get_bearing()
-            mb_cur_bearing = float(mb_cur_bearing)
-            if mb_cur_bearing != -1:
-                cur_bearing = mb_cur_bearing
-        right()
+    turn_right = False
+    if cur_bearing == 0:
+        antipode = 180
+        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
+            pass    
+        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
+            turn_right = True
+            right()
+        else:
+            turn_right = False
+            left()
+    elif cur_bearing == 180:
+        antipode = 360
+        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
+            pass    
+        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
+            turn_right = True
+            right()
+        else:
+            turn_right = False
+            left()
+    elif cur_bearing < 180:
+        antipode = cur_bearing + 180
+        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
+            pass    
+        elif wanted_bearing > cur_bearing and wanted_bearing < antipode:
+            turn_right = True
+            right()
+        else:
+            turn_right = False
+            left()
     else:
-        pass
+        anitpode = cur_bearing - 180
+        if cur_bearing > lo_wanted_bearing_margin and cur_bearing < hi_wanted_bearing_margin:
+            pass    
+        elif wanted_bearing < cur_bearing and wanted_bearing > antipode:
+            turn_right = False
+            left()
+        else:
+            turn_right = True
+            right()
 
     # check if we are at the wanted lat, long
     if cur_lat > lo_lat_margin and cur_lat < hi_lat_margin:
