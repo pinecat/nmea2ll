@@ -88,6 +88,7 @@ def parse_rmc(sentence):
     long = data[5]                      # get long data at correct position in list
     lat_dir = data[4]                   # get lat data at correct position in list
     long_dir = data[6]                  # get long data at correct position in list
+    bearing = data[8]                   # get bearing
     lat_deg = float(lat[:2])            # parse degrees from latitude
     lat_min = float(lat[2:])            # parse minutes from latitude
     long_deg = float(long[:3])          # parse degrees from longitude
@@ -101,7 +102,7 @@ def parse_rmc(sentence):
     if long_dir == 'W':
         long = long * -1
 
-    location = "{ \"RMC\": { \"lat\": \"" + str(lat) + "\", \"long\": \"" + str(long) + "\" } }"  # lat and long put into structured JSON
+    location = "{ \"RMC\": { \"lat\": \"" + str(lat) + "\", \"long\": \"" + str(long) + "\", \"bearing\": \"" + str(bearing) + "\" } }"  # lat and long put into structured JSON
     return location                     # return the location
 
 # parse_others

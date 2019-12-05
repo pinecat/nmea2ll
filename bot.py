@@ -49,6 +49,25 @@ def get_latlong_from_json(end_coords):
         long = ""
     return lat, long
 
+# get_bearing
+#   returns current bearing
+def get_bearing():
+    bearing_rmc = sock_location.recv(1024)
+    while parse_nmea_sentences(bearing_rmc) == "":
+        bearing_rmc = sock_location.recv(1024)
+    bearing_rmc = parse_nmea_sentences(bearing_rmc)
+    bearing_json = json.loads(bearing_rmc)
+    print(bearing_json)
+    cur_bearing = get_bearing_from_json(bearing_json)
+    return cur_bearing
+
+# get_bearing_from_json
+#   gets the bearing from RMC json
+def get_bearing_from_json(json):
+    if json.get('RMC'):
+        return json['RMC']['bearing']
+    return -1
+
 # de_dup
 #   helper function for deduping lat long points from path_data
 def de_dup((lat, long), coords):
@@ -124,8 +143,8 @@ GPIO.setmode(GPIO.BCM)      # set the pin mode
 # rear motors
 GPIO.setup(21, GPIO.OUT)    # rear motor 1
 GPIO.setup(26, GPIO.OUT)    # rear motor 2
-pwm1 = GPIO.PWM(21, 100)    # pwm for rear motor 1
-pwm2 = GPIO.PWM(26, 100)    # pwm for rear motor 2
+#pwm1 = GPIO.PWM(21, 100)    # pwm for rear motor 1
+#pwm2 = GPIO.PWM(26, 100)    # pwm for rear motor 2
 
 # turning
 GPIO.setup(22, GPIO.OUT)    # high to turn left, low to turn right
@@ -150,11 +169,15 @@ for json_element in path_data:
 #   otherwise keep moving and adjusting bearing as needed.
 
 # start back motors
-motor_thread = threading.Thread(target = forward)
-motor_thread.start()
-print('test')
+#motor_thread = threading.Thread(target = forward)
+#motor_thread.start()
+#pwm1.start(80)
+#pwm2.start(80)
+#GPIO.output(21, GPIO.HIGH)
 
-i = 20
+
+cur_bearing = -1.0
+i = 40
 while i < len(coords):
     # get good gps data
     current_location = sock_location.recv(1024)
@@ -178,10 +201,23 @@ while i < len(coords):
     hi_long_margin = wanted_long + 0.000003
 
     # get our current bearing
-    cur_bearing = sock_bearing.recv(1024)
-    cur_bearing = cur_bearing.split('\n')[0]
-    cur_bearing = float(cur_bearing)
-    print(cur_bearing)
+    mb_cur_bearing = get_bearing()
+    mb_cur_bearing = float(mb_cur_bearing)
+    if mb_cur_bearing != -1:
+        cur_bearing = mb_cur_bearing
+
+    #while cur_bearing == 0:
+    #    bearing_rmc = sock_location.recv(1024)
+    #    while parse_nmea_sentences(bearing_rmc) == "":
+    #        bearing_rmc = sock_location.recv(1024)
+    #    bearing_rmc = parse_nmea_sentences(bearing_rmc)
+    #    bearing_json = json.loads(bearing_rmc)
+    #    cur_bearing = get_bearing(bearing_json)
+    
+    #cur_bearing = sock_bearing.recv(1024)
+    #cur_bearing = cur_bearing.split('\n')[0]
+    #cur_bearing = float(cur_bearing)
+    #print(cur_bearing)
     
     # calculate bearing
     wanted_bearing = calculate_bearing(wanted_lat, wanted_long, cur_lat, cur_long)
@@ -201,18 +237,27 @@ while i < len(coords):
     turn_right = ((cur_bearing + 540) % 360) - ((wanted_bearing + 540) % 360)
     if turn_right > 179 and turn_right < 181:
         right()
-        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-        #   pass
+        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+            mb_cur_bearing = get_bearing()
+            mb_cur_bearing = float(mb_cur_bearing)
+            if mb_cur_bearing != -1:
+                cur_bearing = mb_cur_bearing
         left()
     elif turn_right > 0:
         right()
-        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-        #    pass
+        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+            mb_cur_bearing = get_bearing()
+            mb_cur_bearing = float(mb_cur_bearing)
+            if mb_cur_bearing != -1:
+                cur_bearing = mb_cur_bearing
         left()
     elif turn_right < 0:
         left()
-        #while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
-        #    pass
+        while (cur_bearing > hi_wanted_bearing_margin and cur_bearing < lo_wanted_bearing_margin):
+            mb_cur_bearing = get_bearing()
+            mb_cur_bearing = float(mb_cur_bearing)
+            if mb_cur_bearing != -1:
+                cur_bearing = mb_cur_bearing
         right()
     else:
         pass
