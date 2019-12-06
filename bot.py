@@ -91,9 +91,15 @@ def calculate_bearing(end_lat, end_long, cur_lat, cur_long):
     #cur_lat = math.radians(cur_lat)
     #cur_long = math.radians(cur_long)
     
+    r = 6371000
+    a1 = math.radians(cur_lat)
+    a2 = math.radians(cur_long)
+    b1 = math.radians(end_lat - cur_lat)
+    b2 = math.radians(end_long - cur_long)
+
     # calculate bearing and convert to degrees
-    y = math.sin(end_long - cur_long) * math.cos(end_lat)
-    x = (math.cos(cur_lat) * math.sin(end_lat)) - (math.sin(cur_lat) * math.cos(end_lat) * math.cos(end_long - cur_long))
+    y = math.sin(b2 - b1) * math.cos(a2)
+    x = (math.cos(a1) * math.sin(a2)) - (math.sin(a1) * math.cos(a2) * math.cos(b2 - b1))
     bearing = math.degrees(math.atan2(y, x))
     if (bearing < 0):
         bearing = bearing + 360
@@ -177,7 +183,9 @@ GPIO.output(21, GPIO.HIGH)
 
 
 cur_bearing = -1.0
-i = 20
+coords[100] = (40.1489685, -76.5915081667)
+i = 100
+#j = 2
 while i < len(coords):
     # get good gps data
     current_location = sock_location.recv(1024)
@@ -202,9 +210,10 @@ while i < len(coords):
 
     # get our current bearing
     mb_cur_bearing = get_bearing()
-    mb_cur_bearing = float(mb_cur_bearing)
-    if mb_cur_bearing != -1:
-        cur_bearing = mb_cur_bearing
+    if mb_cur_bearing != "":
+        mb_cur_bearing = float(mb_cur_bearing)
+    	if mb_cur_bearing != -1:
+            cur_bearing = mb_cur_bearing
 
     #while cur_bearing == 0:
     #    bearing_rmc = sock_location.recv(1024)
@@ -233,38 +242,53 @@ while i < len(coords):
     #if abs_bearing_chg_deg < 0:
     #    abs_bearing_chg_deg = abs_bearing_chg_deg + 360
 
+    #if j % 2 == 0:
+    #    cur_bearing = 90.0
+    #else:
+    #    cur_bearing = 270.0
+    #j = j + 1
+    
     # calculate which way to turn, negative values indicate to turn left
+    cur_bearing_rad = math.radians(cur_bearing)
+    wanted_bearing_rad = math.radians(wanted_bearing)
 
     # actual
-    hx = math.sin(cur_bearing)
-    hy = math.cos(cur_bearing)
+    hx = math.sin(cur_bearing_rad)
+    hy = math.cos(cur_bearing_rad)
 
     # antipode
-    ax = math.sin(cur_bearing + 180)
-    ay = math.cos(cur_bearing + 180)
+    ax = math.sin(cur_bearing_rad + math.radians(180))
+    ay = math.cos(cur_bearing_rad + math.radians(180))
 
     # desired
-    dx = math.sin(wanted_bearing)
-    dy = math.cos(wanted_bearing)
+    dx = math.sin(wanted_bearing_rad)
+    dy = math.cos(wanted_bearing_rad)
 
     # distance
-    d = ((dx - ax)(hy - ay)) - ((dy - ay)(hx - ax))
+    dist = ((dx - ax) * (hy - ay)) - ((dy - ay) * (hx - ax))
+    print('Distance: ' + str(dist))
 
     turn_right = False
     if dx == ax and dy == ay:
         turn_right = True
         right()
-    elif d > 0:
+    elif dist > 0:
         turn_right = True
         right()
-    elif d < 0:
+    elif dist < 0:
         turn_right = False
         left()
     
     # check if we are at the wanted lat, long
     if cur_lat > lo_lat_margin and cur_lat < hi_lat_margin:
-        if cur_long > lo_long_aring and cur_long < hi_long_margin:
+        if cur_long > lo_long_margin and cur_long < hi_long_margin:
             i = i + 10 # increment i (spot in our coords array)
+    print('cur_lat: ' + str(cur_lat) + ', cur_long: ' + str(cur_long))
+    print('cur_bearing: ' + str(cur_bearing))
+    print('wanted_bearing: ' + str(wanted_bearing))
+    print('lo_lat_margin: ' + str(lo_lat_margin) + ', hi_lat_margin: ' + str(hi_lat_margin))
+    print('lo_long_margin: ' + str(lo_long_margin) + ', hi_long_margin: ' + str(hi_long_margin))
+    print('i: ' + str(i))
 
 GPIO.output(21, GPIO.LOW)
 GPIO.output(26, GPIO.LOW)

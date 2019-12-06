@@ -89,10 +89,16 @@ def parse_rmc(sentence):
     lat_dir = data[4]                   # get lat data at correct position in list
     long_dir = data[6]                  # get long data at correct position in list
     bearing = data[8]                   # get bearing
-    lat_deg = float(lat[:2])            # parse degrees from latitude
-    lat_min = float(lat[2:])            # parse minutes from latitude
-    long_deg = float(long[:3])          # parse degrees from longitude
-    long_min = float(long[3:])          # parse minutes from longitude
+    lat_deg = 0
+    lat_min = 0
+    long_deg = 0
+    long_min = 0
+    if lat_dir != "":
+        lat_deg = float(lat[:2])            # parse degrees from latitude
+        lat_min = float(lat[2:])            # parse minutes from latitude
+    if long_dir != "":
+        long_deg = float(long[:3])          # parse degrees from longitude
+        long_min = float(long[3:])          # parse minutes from longitude
     lat = lat_deg + (lat_min/60.0)      # convert to decimal representation of lat
     long = long_deg + (long_min/60.0)   # convert to decimal representation of long
 
